@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GitHub, explained</title>
+<meta name="viewport" content="width=1920, height=1080">
+<link rel="stylesheet" href="../../runtime/fonts.css">
+<style>
+/* GitHub explainer for beginners. Type: Mona Sans (GitHub, OFL) for everything; Monaspace Neon (GitHub, OFL) for code.
+   Colour = git state only (Primer light): green = open / added, red = removed, purple = merged, blue = branch. Nothing else is coloured. */
+@font-face { font-family: "Mona Sans"; src: url("./fonts/MonaSans-wght.woff2") format("woff2"); font-weight: 200 900; font-display: block; }
+@font-face { font-family: "Monaspace Neon"; src: url("./fonts/MonaspaceNeon-400.woff2") format("woff2"); font-weight: 400; font-display: block; }
+:root {
+  --canvas: #ffffff; --subtle: #f6f8fa; --ink: #1f2328; --muted: #59636e; --border: #d1d9e0;
+  --green: #1f883d; --green-fg: #1a7f37; --red: #cf222e; --purple: #8250df; --blue: #0969da;
+  --add-bg: #dafbe1; --del-bg: #ffebe9; --branch-bg: #ddf4ff;
+  --font: "Mona Sans", "Inter", system-ui, sans-serif; --mono: "Monaspace Neon", ui-monospace, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+#main { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; background: var(--canvas); color: var(--ink); font-family: var(--font); font-weight: 450; }
+.scene { position: absolute; inset: 0; overflow: hidden; }
+.cam, .z { position: absolute; inset: 0; }
+.abs { position: absolute; white-space: pre; }
+
+/* ================= GRAPH WORLD (acts A, C, E, F) ================= */
+#sG { background: radial-gradient(1700px 1150px at 22% 8%, #ffffff 0%, #f2f4f7 48%, #e3e8ee 100%); }
+#zA { transform-origin: 960px 720px; }
+#zC { transform-origin: 960px 690px; }
+#zE { transform-origin: 960px 540px; filter: blur(var(--gb, 0px)); }
+#gworld { position: absolute; left: 0; top: 0; width: 4000px; height: 1080px; }
+#gsvg { position: absolute; left: 0; top: 0; overflow: visible; }
+#pool { position: absolute; left: -760px; top: 300px; width: 1520px; height: 900px; background: radial-gradient(closest-side, rgba(255,255,255,1) 0%, rgba(255,255,255,.7) 45%, rgba(255,255,255,0) 100%); }
+#bloom { position: absolute; left: 2350px; top: 450px; width: 900px; height: 700px; background: radial-gradient(closest-side, rgba(130,80,223,.34) 0%, rgba(130,80,223,.12) 50%, rgba(130,80,223,0) 100%); }
+.dot { position: absolute; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%; background: #fff; border: 6px solid #6e7781; box-shadow: 3px 6px 12px rgba(31,35,40,.20); }
+.dot.blue { border-color: var(--blue); }
+.dot.purple { border-color: var(--purple); background: var(--purple); box-shadow: 3px 6px 16px rgba(130,80,223,.40), inset 0 0 0 5px #fff; }
+.dot.past-purple { border-color: #b39ddb; }
+.dot.past-blue { border-color: #8cc4f2; }
+#dotGhost { position: absolute; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%; border: 4px dashed #8c959f; }
+.lbl { position: absolute; width: 520px; margin-left: -260px; text-align: center; white-space: pre; }
+.lbl .m { font-size: 27px; line-height: 34px; font-weight: 520; letter-spacing: -0.01em; color: var(--ink); }
+.lbl .h { font-family: var(--mono); font-size: 20px; line-height: 28px; color: var(--muted); }
+.lbl.past .m { color: #424a53; }
+.bpill { display: inline-block; font-family: var(--mono); font-size: 22px; line-height: 34px; padding: 0 14px; border-radius: 999px; background: var(--branch-bg); color: var(--blue); }
+#prPill { position: absolute; left: 2410px; top: 676px; width: 320px; height: 48px; border-radius: 999px; background: var(--green); color: #fff; font-size: 25px; line-height: 48px; font-weight: 600; text-align: center; box-shadow: 4px 8px 20px rgba(31,136,61,.30); white-space: pre; }
+#prPill svg { vertical-align: -4px; margin-right: 8px; }
+.say { position: absolute; left: 0; top: 150px; width: 1920px; text-align: center; font-size: 80px; line-height: 96px; font-weight: 560; letter-spacing: -0.028em; color: var(--ink); white-space: pre; }
+
+/* lockup */
+#lock { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; display: flex; align-items: center; justify-content: center; gap: 38px; }
+#lock svg { width: 132px; height: 132px; }
+#lock span { font-size: 138px; line-height: 150px; font-weight: 640; letter-spacing: -0.035em; color: #000; }
+
+/* ================= UI ACTS (B editor + commit dialog, D pull request) ================= */
+.ui { background: var(--canvas); }
+.light { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(2000px 1300px at 18% 6%, rgba(255,255,255,0) 35%, rgba(31,35,40,.10) 100%); }
+.t14 { font-size: 14px; line-height: 20px; }
+.btn { position: absolute; height: 32px; border-radius: 6px; font-size: 14px; line-height: 30px; font-weight: 500; text-align: center; border: 1px solid rgba(31,35,40,.15); background: var(--subtle); color: var(--ink); white-space: pre; }
+.btn.primary { background: var(--green); color: #fff; border-color: rgba(31,35,40,.15); font-weight: 600; }
+.box { position: absolute; border: 1px solid var(--border); border-radius: 6px; background: #fff; }
+
+/* editor */
+#tree { position: absolute; left: 300px; top: 340px; width: 240px; }
+#tree div { height: 32px; line-height: 32px; padding-left: 14px; border-radius: 6px; font-size: 14px; color: var(--ink); }
+#tree .on { background: #eff2f5; font-weight: 600; }
+#ed { position: absolute; left: 560px; top: 340px; width: 800px; height: 300px; }
+#edHead { position: absolute; left: 0; top: 0; width: 800px; height: 56px; border-bottom: 1px solid var(--border); background: var(--subtle); border-radius: 6px 6px 0 0; }
+#code { position: absolute; left: 0; top: 64px; width: 800px; font-family: var(--mono); font-size: 14px; line-height: 22px; }
+#code .ln { position: absolute; left: 0; width: 44px; text-align: right; color: var(--muted); }
+#code .tx { position: absolute; left: 66px; white-space: pre; }
+.dig { position: relative; display: inline-block; }
+#sel { position: absolute; left: -1px; top: 1px; width: 10px; height: 20px; background: rgba(9,105,218,.25); }
+#bcaret { position: absolute; top: 2px; width: 2px; height: 18px; background: var(--ink); }
+#d2 { position: absolute; left: 0; top: 0; }
+#bDim { position: absolute; left: -3000px; top: -3000px; width: 8000px; height: 8000px; background: rgba(31,35,40,.38); }
+#dlg { position: absolute; left: 640px; top: 300px; width: 640px; height: 424px; border-radius: 12px; background: #fff; box-shadow: 0 0 0 1px rgba(31,35,40,.12), 10px 24px 60px rgba(31,35,40,.30); }
+.radio { position: absolute; width: 16px; height: 16px; border-radius: 50%; border: 1px solid #818b98; background: #fff; }
+.radio.on { border: 5px solid var(--blue); }
+.inp { position: absolute; height: 34px; border: 1px solid var(--border); border-radius: 6px; background: #fff; }
+#mcaret { position: absolute; left: 0; top: 7px; width: 2px; height: 20px; background: var(--ink); }
+
+/* pull request */
+.badge { position: absolute; height: 32px; border-radius: 16px; color: #fff; font-size: 14px; line-height: 32px; font-weight: 600; padding: 0 14px 0 12px; white-space: pre; }
+.badge svg { vertical-align: -3px; margin-right: 5px; }
+code.ref { font-family: var(--mono); font-size: 12px; line-height: 18px; padding: 1px 6px; border-radius: 6px; background: var(--branch-bg); color: var(--blue); }
+.tl-ic { position: absolute; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+#cursorB, #cursorD { position: absolute; left: 0; top: 0; overflow: visible; z-index: 20; }
+</style>
+</head>
+<body>
+<div id="main">
+
+  <!-- ===================== GRAPH WORLD: acts A (0-90), C (254-432), E (580-700), F (700-750) ===================== -->
+  <section id="sG" class="scene">
+    <div id="zA" class="z"><div id="zC" class="z"><div id="zE" class="z"><div id="gcam" class="cam">
+      <div id="gworld">
+        <div id="pool"></div>
+        <div id="bloom"></div>
+        <svg id="gsvg" width="4000" height="1080" viewBox="0 0 4000 1080">
+          <defs>
+            <mask id="mReq" maskUnits="userSpaceOnUse" x="0" y="0" width="4000" height="1080">
+              <path id="pReqMask" d="M2340,600 C2540,600 2600,800 2800,800" fill="none" stroke="#fff" stroke-width="14"/>
+            </mask>
+          </defs>
+          <!-- history: main, and one earlier branch that was merged (#9) -->
+          <path d="M-300,800 H1880" fill="none" stroke="#8c959f" stroke-width="6" stroke-linecap="round"/>
+          <path d="M620,800 C700,800 720,660 830,660 C940,660 960,800 1040,800" fill="none" stroke="#a5d0f5" stroke-width="5"/>
+          <!-- this change -->
+          <path id="pMainExt" d="M1880,800 H2800" fill="none" stroke="#8c959f" stroke-width="6"/>
+          <path id="pBranch" d="M1880,800 C2010,800 2060,600 2200,600 L2340,600" fill="none" stroke="#0969da" stroke-width="6" stroke-linecap="round"/>
+          <path id="pReq" d="M2340,600 C2540,600 2600,800 2800,800" fill="none" stroke="#1f883d" stroke-width="5" stroke-dasharray="16 12" mask="url(#mReq)"/>
+          <path id="pMerge" d="M2340,600 C2540,600 2600,800 2800,800" fill="none" stroke="#8250df" stroke-width="7" stroke-linecap="round"/>
+        </svg>
+        <!-- dots -->
+        <div class="dot" style="left:200px;top:800px"></div>
+        <div class="dot" style="left:620px;top:800px"></div>
+        <div class="dot past-blue" style="left:830px;top:660px"></div>
+        <div class="dot past-purple" style="left:1040px;top:800px"></div>
+        <div class="dot" style="left:1460px;top:800px"></div>
+        <div id="dotHead" class="dot" style="left:1880px;top:800px"></div>
+        <div id="dotGhost" style="left:2800px;top:800px"></div>
+        <div id="dotB" class="dot blue" style="left:2340px;top:600px"></div>
+        <div id="dotM" class="dot purple" style="left:2800px;top:800px"></div>
+        <!-- labels: real git-log grammar (message + short hash); content is illustrative -->
+        <div class="lbl past" style="left:200px;top:836px"><div class="m">Add pancake recipe</div><div class="h">1c4e2a7</div></div>
+        <div class="lbl past" style="left:620px;top:836px"><div class="m">Add maple syrup note</div><div class="h">8be0f13</div></div>
+        <div class="lbl past" style="left:830px;top:574px"><div class="m">Try oat flour</div><div class="h">5a9d3c0</div></div>
+        <div class="lbl past" style="left:1040px;top:836px"><div class="m">Merge pull request #9</div><div class="h">c02f6e4</div></div>
+        <div class="lbl past" style="left:1460px;top:836px"><div class="m">Add photos of the stack</div><div class="h">e71b5f8</div></div>
+        <div id="lblHead" class="lbl" style="left:1880px;top:836px"><div class="m">Sort recipes by meal</div><div class="h">3f6c2d1</div></div>
+        <div id="lblB" class="lbl" style="left:2372px;top:512px;margin-left:0;width:420px;text-align:left"><div class="m">Use 2 eggs, not 3</div><div class="h">9d41b7e</div></div>
+        <div id="pillBr" class="abs" style="left:2040px;top:640px"><span class="bpill">fewer-eggs</span></div>
+        <div id="lblM" class="lbl" style="left:2800px;top:836px;width:760px;margin-left:-380px"><div class="m">Merge pull request #14 from maya/fewer-eggs</div><div class="h">b7c4e19</div></div>
+        <div id="prPill"><svg width="22" height="22" viewBox="0 0 16 16"><g fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"><circle cx="4" cy="3.5" r="1.7"/><circle cx="4" cy="12.5" r="1.7"/><circle cx="12" cy="12.5" r="1.7"/><path d="M4 5.2v5.6M12 10.8V6.5a2 2 0 0 0-2-2H7.5"/><path d="M9 3l-1.5 1.5L9 6"/></g></svg>Pull request #14</div>
+      </div>
+    </div></div></div></div>
+
+    <div id="sayA" class="say">GitHub keeps every version
+of your project.</div>
+    <div id="sayC1" class="say">Your commit waits on its own branch.</div>
+    <div id="sayC2" class="say">A pull request asks to merge it back.</div>
+    <div id="sayE" class="say">Merged. The change is now part of main.</div>
+
+    <div id="lock">
+      <svg viewBox="0 0 24 24"><path fill="#000" d="M10.226 17.284c-2.965-.36-5.054-2.493-5.054-5.256 0-1.123.404-2.336 1.078-3.144-.292-.741-.247-2.314.09-2.965.898-.112 2.111.36 2.83 1.01.853-.269 1.752-.404 2.853-.404 1.1 0 1.999.135 2.807.382.696-.629 1.932-1.1 2.83-.988.315.606.36 2.179.067 2.942.72.854 1.101 2 1.101 3.167 0 2.763-2.089 4.852-5.098 5.234.763.494 1.28 1.572 1.28 2.807v2.336c0 .674.561 1.056 1.235.786 4.066-1.55 7.255-5.615 7.255-10.646C23.5 6.188 18.334 1 11.978 1 5.62 1 .5 6.188.5 12.545c0 4.986 3.167 9.12 7.435 10.669.606.225 1.19-.18 1.19-.786V20.63a2.9 2.9 0 0 1-1.078.224c-1.483 0-2.359-.808-2.987-2.313-.247-.607-.517-.966-1.034-1.033-.27-.023-.359-.135-.359-.27 0-.27.45-.471.898-.471.652 0 1.213.404 1.797 1.235.45.651.921.943 1.483.943.561 0 .92-.202 1.437-.719.382-.381.674-.718.944-.943"/></svg>
+      <span>GitHub</span>
+    </div>
+  </section>
+
+  <!-- ===================== B  EDIT + COMMIT (90-254): GitHub's file editor and its Commit changes dialog (rebuilt fragment) ===================== -->
+  <section id="sB" class="scene ui"><div id="bcam" class="cam">
+    <div id="tree" data-ui>
+      <div>README.md</div>
+      <div class="on">pancakes.md</div>
+      <div>waffles.md</div>
+      <div>french-toast.md</div>
+    </div>
+    <div id="ed" class="box" data-ui>
+      <div id="edHead">
+        <div class="abs t14" style="left:16px;top:18px;color:var(--muted)">recipes / <b style="color:var(--ink);font-weight:600">pancakes.md</b>  in <code class="ref">main</code></div>
+        <div class="btn" style="left:546px;top:12px;width:120px">Cancel changes</div>
+        <div id="btnCommit" class="btn primary" style="left:674px;top:12px;width:116px">Commit changes...</div>
+      </div>
+      <div id="code">
+        <div class="ln" style="top:0">1</div><div class="tx" style="top:0;font-weight:400"># Fluffy pancakes</div>
+        <div class="ln" style="top:22px">2</div>
+        <div class="ln" style="top:44px">3</div><div class="tx" style="top:44px">- 1 cup flour</div>
+        <div class="ln" style="top:66px">4</div><div class="tx" style="top:66px">- <span class="dig"><i id="sel"></i><span id="d3">3</span><span id="d2">2</span><i id="bcaret" style="left:9px"></i></span> eggs</div>
+        <div class="ln" style="top:88px">5</div><div class="tx" style="top:88px">- 1 cup milk</div>
+        <div class="ln" style="top:110px">6</div><div class="tx" style="top:110px">- 2 tbsp sugar</div>
+        <div class="ln" style="top:132px">7</div><div class="tx" style="top:132px">- A pinch of salt</div>
+        <div class="ln" style="top:154px">8</div>
+        <div class="ln" style="top:176px">9</div><div class="tx" style="top:176px">Whisk, rest 10 minutes, cook on medium heat.</div>
+      </div>
+    </div>
+    <div id="bDim"></div>
+    <div id="dlg" data-ui>
+      <div class="abs" style="left:0;top:0;width:640px;height:52px;border-bottom:1px solid var(--border)"></div>
+      <div class="abs" style="left:16px;top:15px;font-size:16px;line-height:22px;font-weight:600">Commit changes</div>
+      <div class="abs" style="left:602px;top:12px;font-size:20px;line-height:24px;color:var(--muted)">×</div>
+      <div class="abs t14" style="left:16px;top:68px;font-weight:600">Commit message</div>
+      <div class="inp" style="left:16px;top:92px;width:608px">
+        <div id="ph" class="abs t14" style="left:12px;top:7px;color:var(--muted)">Update pancakes.md</div>
+        <div id="msg" class="abs t14" style="left:12px;top:7px">Use 2 eggs, not 3</div>
+        <i id="mcaret"></i>
+      </div>
+      <div class="abs t14" style="left:16px;top:142px;font-weight:600">Extended description</div>
+      <div class="inp" style="left:16px;top:166px;width:608px;height:64px"><div class="abs t14" style="left:12px;top:8px;color:var(--muted)">Add an optional extended description...</div></div>
+      <div id="r1" class="radio" style="left:16px;top:252px"></div><div id="r1on" class="radio on" style="left:16px;top:252px"></div>
+      <div class="abs t14" style="left:42px;top:250px">Commit directly to the <code class="ref">main</code> branch</div>
+      <div id="r2" class="radio" style="left:16px;top:284px"></div><div id="r2on" class="radio on" style="left:16px;top:284px"></div>
+      <div class="abs t14" style="left:42px;top:282px">Create a <b style="font-weight:600">new branch</b> for this commit and start a pull request</div>
+      <div id="brIn" class="inp" style="left:42px;top:312px;width:300px;height:32px">
+        <svg class="abs" style="left:10px;top:8px" width="16" height="16" viewBox="0 0 16 16"><g fill="none" stroke="#59636e" stroke-width="1.5"><circle cx="4.5" cy="3.5" r="1.6"/><circle cx="4.5" cy="12.5" r="1.6"/><circle cx="11.5" cy="4.5" r="1.6"/><path d="M4.5 5.1v5.8M11.5 6.1c0 3-7 2.2-7 4.8"/></g></svg>
+        <div class="abs t14" style="left:34px;top:5px">fewer-eggs</div>
+      </div>
+      <div class="abs" style="left:0;top:364px;width:640px;border-top:1px solid var(--border)"></div>
+      <div class="btn" style="left:414px;top:376px;width:68px">Cancel</div>
+      <div id="btnP" class="btn primary" style="left:490px;top:376px;width:134px"><span id="lblCommit">Commit changes</span><span id="lblPropose" class="abs" style="left:0;top:0;width:132px">Propose changes</span></div>
+    </div>
+    <svg id="cursorB" width="14" height="20" viewBox="0 0 32 46"><path d="M0 0 L0 38 L10 29 L17 45 L25 41 L18 26 L31 26 Z" fill="#1f2328" stroke="#fff" stroke-width="3" stroke-linejoin="round" paint-order="stroke"/></svg>
+  </div><div class="light"></div></section>
+
+  <!-- ===================== D  PULL REQUEST (432-580): GitHub's PR conversation page (rebuilt fragment) ===================== -->
+  <section id="sD" class="scene ui"><div id="pcam" class="cam">
+    <div class="abs" style="left:520px;top:296px;font-size:32px;line-height:40px;font-weight:400;letter-spacing:-0.01em">Use 2 eggs, not 3 <span style="color:var(--muted);font-weight:300">#14</span></div>
+    <div id="bOpen" class="badge" style="left:520px;top:356px;background:var(--green)"><svg width="16" height="16" viewBox="0 0 16 16"><g fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round"><circle cx="4" cy="3.5" r="1.6"/><circle cx="4" cy="12.5" r="1.6"/><circle cx="12" cy="12.5" r="1.6"/><path d="M4 5.1v5.8M12 10.9V6.5a2 2 0 0 0-2-2H7.5"/><path d="M9 3l-1.5 1.5L9 6"/></g></svg>Open</div>
+    <div id="bMerged" class="badge" style="left:520px;top:356px;background:var(--purple)"><svg width="16" height="16" viewBox="0 0 16 16"><g fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round"><circle cx="4" cy="3.5" r="1.6"/><circle cx="4" cy="12.5" r="1.6"/><circle cx="12" cy="9" r="1.6"/><path d="M4 5.1v5.8M4 5.1c0 2.4 2.5 3.9 6.4 3.9"/></g></svg>Merged</div>
+    <div id="metaOpen" class="abs t14" style="left:618px;top:362px;color:var(--muted)"><b style="color:var(--ink);font-weight:600">maya</b> wants to merge 1 commit into <code class="ref">main</code> from <code class="ref">fewer-eggs</code></div>
+    <div id="metaMerged" class="abs t14" style="left:636px;top:362px;color:var(--muted)"><b style="color:var(--ink);font-weight:600">maya</b> merged 1 commit into <code class="ref">main</code> from <code class="ref">fewer-eggs</code> now</div>
+    <!-- sam's comment -->
+    <div id="cmt" class="abs" style="left:520px;top:478px;width:880px;height:96px">
+      <svg class="abs" style="left:0;top:0;border-radius:50%;box-shadow:0 0 0 1px var(--border)" width="40" height="40" viewBox="0 0 5 5" shape-rendering="crispEdges"><rect width="5" height="5" fill="#f0f0f0"/><g fill="#c7743a"><rect x="0" y="0" width="1" height="1"/><rect x="4" y="0" width="1" height="1"/><rect x="1" y="1" width="3" height="1"/><rect x="2" y="2" width="1" height="1"/><rect x="0" y="3" width="2" height="1"/><rect x="3" y="3" width="2" height="1"/><rect x="1" y="4" width="1" height="1"/><rect x="3" y="4" width="1" height="1"/></g></svg>
+      <div class="box" style="left:56px;top:0;width:824px;height:92px" data-ui>
+        <div class="abs t14" style="left:0;top:0;width:822px;height:40px;background:var(--subtle);border-bottom:1px solid var(--border);border-radius:6px 6px 0 0;padding:10px 16px;color:var(--muted)"><b style="color:var(--ink);font-weight:600">sam</b> commented 3 minutes ago</div>
+        <div class="abs t14" style="left:16px;top:56px">Made these this morning. Way fluffier.</div>
+      </div>
+    </div>
+    <div id="appr" class="abs" style="left:520px;top:584px;width:880px;height:40px">
+      <div class="tl-ic" style="left:4px;top:0;width:32px;height:32px;background:var(--green)"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="abs t14" style="left:48px;top:6px;color:var(--muted)"><b style="color:var(--ink);font-weight:600">sam</b> approved these changes</div>
+    </div>
+    <!-- merge box: open state, then merged -->
+    <div id="mergeBox" class="abs" style="left:520px;top:640px;width:880px;height:140px">
+      <div class="tl-ic" style="left:0;top:0;width:40px;height:40px;background:var(--green)"><svg width="20" height="20" viewBox="0 0 16 16"><g fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round"><circle cx="4" cy="3.5" r="1.6"/><circle cx="4" cy="12.5" r="1.6"/><circle cx="12" cy="9" r="1.6"/><path d="M4 5.1v5.8M4 5.1c0 2.4 2.5 3.9 6.4 3.9"/></g></svg></div>
+      <div class="box" style="left:56px;top:0;width:824px;height:140px" data-ui>
+        <div class="tl-ic" style="left:16px;top:14px;width:24px;height:24px;background:var(--green)"><svg width="14" height="14" viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="abs t14" style="left:52px;top:16px;font-weight:600">This branch has no conflicts with the base branch</div>
+        <div class="abs t14" style="left:52px;top:40px;color:var(--muted)">Merging can be performed automatically.</div>
+        <div id="mBtn" class="btn primary" style="left:16px;top:84px;width:190px"><span id="lblMerge">Merge pull request</span><span id="lblConfirm" class="abs" style="left:0;top:0;width:188px">Confirm merge</span></div>
+      </div>
+    </div>
+    <div id="mergedBox" class="abs" style="left:520px;top:640px;width:880px;height:140px">
+      <div class="tl-ic" style="left:0;top:0;width:40px;height:40px;background:var(--purple)"><svg width="20" height="20" viewBox="0 0 16 16"><g fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round"><circle cx="4" cy="3.5" r="1.6"/><circle cx="4" cy="12.5" r="1.6"/><circle cx="12" cy="9" r="1.6"/><path d="M4 5.1v5.8M4 5.1c0 2.4 2.5 3.9 6.4 3.9"/></g></svg></div>
+      <div class="box" style="left:56px;top:0;width:824px;height:140px" data-ui>
+        <div class="tl-ic" style="left:16px;top:14px;width:24px;height:24px;background:var(--purple)"><svg width="14" height="14" viewBox="0 0 16 16"><g fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"><circle cx="4" cy="3.5" r="1.5"/><circle cx="4" cy="12.5" r="1.5"/><circle cx="12" cy="9" r="1.5"/><path d="M4 5v6M4 5c0 2.4 2.5 4 6.5 4"/></g></svg></div>
+        <div class="abs t14" style="left:52px;top:16px;font-weight:600">Pull request successfully merged and closed</div>
+        <div class="abs t14" style="left:52px;top:40px;color:var(--muted)">You're all set. The <code class="ref">fewer-eggs</code> branch can be safely deleted.</div>
+        <div class="btn" style="left:16px;top:84px;width:120px">Delete branch</div>
+      </div>
+    </div>
+    <svg id="cursorD" width="14" height="20" viewBox="0 0 32 46"><path d="M0 0 L0 38 L10 29 L17 45 L25 41 L18 26 L31 26 Z" fill="#1f2328" stroke="#fff" stroke-width="3" stroke-linejoin="round" paint-order="stroke"/></svg>
+  </div><div class="light"></div></section>
+
+</div>
+
+<script src="../../runtime/vendor/gsap.min.js"></script>
+<script src="../../runtime/motion.js"></script>
+<script>
+const M = window.__M = Motion.film({ fps: 30, duration: 25, width: 1920, height: 1080, clock: 'smooth' });
+const C = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const INK = C('--ink'), GREEN = C('--green'), GREENFG = C('--green-fg'), PURPLE = C('--purple'), BLUE = C('--blue');
+
+// lines draw by dash offset (static dash array = path length)
+const drawable = id => { const p = document.getElementById(id), L = Math.ceil(p.getTotalLength()) + 2; p.style.strokeDasharray = L + ' ' + L; p.style.strokeDashoffset = L; return L; };
+const Lb = drawable('pBranch'), Lx = drawable('pMainExt'), Lm = drawable('pMerge'), Lr = drawable('pReqMask');
+
+/* graph camera: one continuous move for the whole film (#gcam), origin at frame centre.
+   centre world point P at screen T with scale s: x = Tx - 960 - s*(Px-960), y = Ty - 540 - s*(Py-540) */
+M.camera('#gcam', [
+  [0,   { x: -435,  y: -170, scale: 1.5 }],
+  [84,  { x: -1380, y: -210, scale: 1.5 }, 'glide'],          // A: decelerate onto HEAD (HEAD at 960,720)
+  [254, { x: -1380, y: -210, scale: 1.5 }],
+  [300, { x: -1667, y: -92,  scale: 1.45 }, 'softInOut'],     // C: frame HEAD and the new branch commit
+  [348, { x: -2334, y: -82,  scale: 1.45 }, 'softInOut'],     // C: travel to the request
+  [420, { x: -2415, y: -90,  scale: 1.5 }, 'cruise'],         // pill at 960,690
+  [580, { x: -3680, y: -360, scale: 2 }],                     // E: start close on the merge
+  [640, { x: -1825, y: -75,  scale: 1.25 }, 'glide'],         // E: pull back over the change and its history
+  [728, { x: -1590, y: -52,  scale: 1.12 }, 'softInOut'],     // E/F: keep breathing, then rest
+], { origin: '960px 540px' });
+M.kf('#pool', 'x', [[0, 1250], [84, 1880, 'glide'], [254, 1880], [300, 2110, 'softInOut'], [348, 2570, 'softInOut'], [580, 2800], [640, 2450, 'glide']]);
+
+/* ---------------- A  HOOK 0-90 ---------------- */
+M.words('#sayA', { at: 4, mech: 'rise', dist: 56, gaps: [5, 4, 5, 6, 4, 5], frames: 13, smear: { px: 24 } });
+M.exit('#sayA', { at: 74, frames: 10, to: { y: -60, blur: 8 }, smear: true });
+M.kf('#zA', 'scale', [[76, 1], [90, 7, 'gentleIn'], [90, 1]]);           // dive into HEAD
+M.cut(90, { hide: ['#sG'], show: ['#sB'], label: 'dive into HEAD -> editor' });
+
+/* ---------------- B  EDIT + COMMIT 90-254 ---------------- */
+// centre native point P at screen centre: x = -s*(Px-960), y = -s*(Py-540)
+M.camera('#bcam', [
+  [90,  { x: 810,  y: 174, scale: 3.0 }],
+  [116, { x: 891,  y: 191, scale: 3.3 }, 'softLand'],     // push in on line 4
+  [142, { x: -572, y: 312, scale: 2.6 }, 'softInOut'],    // to Commit changes...
+  [162, { x: 87,   y: 348, scale: 2.9 }, 'softInOut'],    // the dialog's message field
+  [196, { x: 110,  y: 300, scale: 2.95 }, 'cruise'],
+  [214, { x: 174,  y: -145, scale: 2.9 }, 'softInOut'],   // the branch choice
+  [226, { x: 160,  y: -170, scale: 2.9 }, 'cruise'],
+  [244, { x: -336, y: -336, scale: 2.8 }, 'softInOut'],   // Propose changes
+  [254, { x: -360, y: -352, scale: 2.88 }, 'cruise'],
+], { origin: '960px 540px' });
+// the edit: caret blinks after "3", 3 is selected, 2 replaces it (newest glyph in "added" green, settles to ink)
+M.kf('#bcaret', 'opacity', [[90, 1], [98, 1], [98, 0], [104, 0], [104, 0], [112, 0], [112, 1], [124, 1], [124, 0], [132, 0], [132, 1], [146, 1], [146, 0]]);
+M.show('#sel', 104, 112);
+M.hide('#d3', 112, 'replace 3');
+M.show('#d2', 112);
+M.mark(112, 'type', '3 -> 2');
+M.kf('#d2', 'color', [[112, GREENFG], [132, INK, 'softInOut']]);
+// Commit changes...
+M.cursor('#cursorB', { keys: [[118, 1480, 640, 3, -24], [128, 1350, 470, 1.8, -10], [138, 1296, 372, 1, 0], [196, 1296, 372, 1, 0], [206, 960, 520, 1, 0], [216, 666, 594, 1, 0], [226, 666, 594, 1, 0], [236, 1000, 660, 1, 0], [244, 1192, 692, 1, 0]], ease: 'glide' });
+M.press('#cursorB', '#btnCommit', { at: 142, cursorDepth: .8, targetDepth: .9, lag: 1, frames: 3 });
+M.kf('#bDim', 'opacity', [[0, 0], [145, 0], [151, 1, 'softInOut']]);
+M.enter('#dlg', { at: 146, frames: 11, ease: 'softLand', from: { y: 26, scale: .96 } });
+M.hide('#ph', 160, 'placeholder');
+M.type('#msg', { at: 160, style: 'prompt', seed: 7, caret: '#mcaret', caretGap: 6, accentNewest: { color: GREENFG, frames: 2 } });
+// choose "Create a new branch ... and start a pull request"
+M.hide('#r1on', 221, 'radio main off');
+M.show('#r2on', 221);
+M.press('#cursorB', '#r2', { at: 219, cursorDepth: .8, targetDepth: .85, lag: 1, frames: 2 });
+M.enter('#brIn', { at: 223, frames: 9, ease: 'softLand', from: { y: -10, opacity: 0 } });
+M.hide('#lblCommit', 222, 'button becomes Propose changes');
+M.show('#lblPropose', 222);
+M.press('#cursorB', '#btnP', { at: 248, cursorDepth: .8, targetDepth: .9, lag: 1, frames: 3, release: false });
+M.cut(254, { hide: ['#sB'], show: ['#sG'], label: 'Propose changes -> branch' });
+
+/* ---------------- C  BRANCH + REQUEST 254-432 ---------------- */
+M.kf('#pBranch', 'strokeDashoffset', [[254, Lb], [270, 0, 'softLand']]);
+M.mark(254, 'show', 'branch draws');
+M.enter('#dotB', { at: 262, frames: 11, ease: 'snapSettle', from: { scale: 3.2 } });
+M.enter('#lblB', { at: 268, frames: 12, ease: 'softLand', from: { y: 30 } });
+M.enter('#pillBr', { at: 274, frames: 12, ease: 'softLand', from: { x: -40 } });
+M.words('#sayC1', { at: 276, mech: 'rise', dist: 56, gaps: [4, 5, 4, 4, 4, 6], frames: 13, smear: { px: 24 }, accent: { color: BLUE, frames: 40, word: -1 } });
+M.exit('#sayC1', { at: 332, frames: 10, to: { y: -60, blur: 8 }, smear: true });
+M.kf('#pReqMask', 'strokeDashoffset', [[344, Lr], [364, 0, 'softLand']]);
+M.mark(344, 'show', 'request line draws');
+M.enter('#dotGhost', { at: 360, frames: 10, ease: 'softLand', from: { scale: 1.8, opacity: 0 } });
+M.enter('#prPill', { at: 354, frames: 12, ease: 'snapSettle', from: { scale: 2.4 } });
+M.words('#sayC2', { at: 350, mech: 'rise', dist: 56, gaps: [4, 4, 5, 4, 4, 4, 6], frames: 13, smear: { px: 24 }, accent: { color: GREEN, frames: 46, word: [1, 2] } });
+M.kf('#zC', 'scale', [[414, 1], [432, 6, 'gentleIn'], [432, 1]]);           // dive into the pull request
+M.hide('#sayC2', 432, 'C2 out');
+M.cut(432, { hide: ['#sG'], show: ['#sD'], label: 'dive into PR -> PR page' });
+
+/* ---------------- D  PULL REQUEST 432-580 ---------------- */
+M.camera('#pcam', [
+  [432, { x: 660, y: 585, scale: 3.0 }],
+  [470, { x: 300, y: 540, scale: 3.0 }, 'softInOut'],    // read "maya wants to merge ..."
+  [494, { x: 360, y: 15,  scale: 3.0 }, 'softInOut'],    // sam's comment, then the approval
+  [516, { x: 420, y: -60, scale: 3.0 }, 'cruise'],
+  [536, { x: 600, y: -540, scale: 3.0 }, 'softInOut'],   // the merge box
+  [561, { x: 610, y: -556, scale: 3.03 }, 'cruise'],
+  [580, { x: 220, y: -220, scale: 2.2 }, 'glide'],       // pull back on the merged state
+], { origin: '960px 540px' });
+M.enter('#cmt', { at: 478, frames: 12, ease: 'softLand', from: { y: 40 } });
+M.enter('#appr', { at: 500, frames: 11, ease: 'softLand', from: { y: 30 } });
+M.cursor('#cursorD', { keys: [[514, 1150, 900, 3, -24], [526, 850, 790, 1.6, -8], [536, 676, 745, 1, 0]], ease: 'glide' });
+M.press('#cursorD', '#mBtn', { at: 542, cursorDepth: .8, targetDepth: .92, lag: 1, frames: 3 });
+M.hide('#lblMerge', 546, 'Merge pull request -> Confirm merge');
+M.show('#lblConfirm', 546);
+M.press('#cursorD', '#mBtn', { at: 556, cursorDepth: .8, targetDepth: .92, lag: 1, frames: 3 });
+M.cut(560, { hide: ['#mergeBox', '#bOpen', '#metaOpen', '#cursorD'], show: ['#mergedBox', '#bMerged', '#metaMerged'], label: 'merged' });
+M.show('#mergeBox', 0); M.show('#bOpen', 0); M.show('#metaOpen', 0);
+M.cut(580, { hide: ['#sD'], show: ['#sG'], label: 'merged -> graph' });
+
+/* ---------------- E  MERGE (hero) 580-700 ---------------- */
+M.kf('#pMerge', 'strokeDashoffset', [[580, Lm], [596, 0, 'softLand']]);
+M.kf('#pMainExt', 'strokeDashoffset', [[580, Lx], [596, 0, 'softLand']]);
+M.hide('#prPill', 580, 'request becomes merge');
+M.hide('#dotGhost', 594);
+M.enter('#dotM', { at: 594, frames: 11, ease: 'snapSettle', from: { scale: 3.4 } });
+M.mark(594, 'snap', 'merge commit lands');
+M.kf('#bloom', 'opacity', [[0, 0], [594, 0], [600, 1, 'softLand'], [700, .55, 'softInOut']]);
+M.kf('#bloom', 'scale', [[594, .35], [612, 1, 'softLand'], [728, 1.12, 'cruise']]);
+M.enter('#lblM', { at: 604, frames: 12, ease: 'softLand', from: { y: 30 } });
+M.words('#sayE', { at: 612, mech: 'rise', dist: 56, gaps: [9, 4, 4, 4, 4, 4, 6], frames: 13, smear: { px: 24 }, accent: { color: PURPLE, frames: 80, word: 0 } });
+M.hide('#sayE', 700, 'sentence out');
+
+/* ---------------- F  NAME 700-750 ---------------- */
+M.kf('#zE', '--gb', [[700, 0], [712, 9, 'softLand']], { fmt: v => v + 'px' });
+M.kf('#zE', 'opacity', [[700, 1], [712, .5, 'softLand']]);
+M.enter('#lock', { at: 700, frames: 14, ease: 'snapSettle', from: { scale: 3.5, blur: 12 }, smear: { axis: 'x', px: 50, frames: 3 } });
+M.kf('#lock', 'scale', [[714, 1], [728, .96, 'glide']]);
+M.mark(700, 'logo', 'GitHub crash-in');
+
+window.__ready = Motion.loaded().then(() => { if (/selftest/.test(location.search)) Motion.selfTest(M, { samples: 24 }); });
+</script>
+</body>
+</html>
